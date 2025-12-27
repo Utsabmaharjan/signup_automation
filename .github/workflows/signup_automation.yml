@@ -21,6 +21,4 @@ jobs:
           cd automation
           pip install -r requirements.txt
           playwright install chromium
-
-      - name: Run signup automation
-        run: python signup_automation_script.py
+          python signup_automation_script.py
