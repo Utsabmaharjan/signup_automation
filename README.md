@@ -1,4 +1,5 @@
 # signup_automation_steps
+### cd automation
 ### step 1: install python, pip
 ### step 2: create virtual environment
 ```python -m venv venv```
@@ -15,6 +16,13 @@ to run the signup automation script you can use this command
 
 to run the login automation script you can use this command
 ``` pyhton login_automation_script.py ```
+
+# folder structure
+project repo name 
+signup_automation 
+automation folder contains all the automation files 
+utils folder contains test data 
+image folder contain test image files
 
 
 

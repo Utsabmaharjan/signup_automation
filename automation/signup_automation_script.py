@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright
-from test_data import USER_DATA
+from utils.test_data import USER_DATA
 import time
 from datetime import datetime
 import requests
@@ -16,13 +16,10 @@ def extract_latest_otp(api_response: dict) -> str:
     """
     Extract OTP from the most recent email message
     """
-
-    # 1. Get messages list safely
     messages = api_response.get("member", [])
     if not messages:
         raise Exception("No messages found")
 
-    # 2. Sort messages by createdAt (latest first)
     messages.sort(
         key=lambda m: datetime.fromisoformat(
             m["createdAt"].replace("Z", "+00:00")),
@@ -31,14 +28,11 @@ def extract_latest_otp(api_response: dict) -> str:
 
     latest_message = messages[0]
 
-    # 3. Try intro first (simpler)
     text = latest_message.get("intro", "")
 
-    # 4. If not found, fallback to HTML body
     if not text:
         text = latest_message.get("bodyHtml", "")
 
-    # 5. Extract 6-digit OTP
     match = re.search(r"\b\d{6}\b", text)
     if not match:
         raise Exception("OTP not found in email")
@@ -56,15 +50,15 @@ def get_temp_gmail_account():
             "X-Rapidapi-Host": RAPIDAPI_HOST,
             "Content-Type": "application/json"
         },
-        json={}  # <-- Important! Send empty JSON body
+        json={}
     )
     response.raise_for_status()
     result = response.json()
 
-    print(result)  # keep this for debugging
+    print(result) 
 
     return {
-        "email": result["data"]["email"],   # ✅ FIXED
+        "email": result["data"]["email"],
         "token": result["data"]["token"]
     }
 
@@ -72,10 +66,6 @@ def get_temp_gmail_account():
 def get_messages(email):
     """STEP 2: Get messages from temp Gmail"""
     url = f"{BASE_URL}/show-mails"
-    # payload = {
-    # "email": email,
-    # "token": token
-    # }
     response = requests.get(
         url,
         headers={
@@ -84,7 +74,7 @@ def get_messages(email):
             "Content-Type": "application/json"
         },
         params={
-            "email": email   # ✅ query param
+            "email": email  
         },
         timeout=10
     )
@@ -97,7 +87,7 @@ def get_otp_from_gmail(email):
     """
     Poll temp email inbox and extract OTP from body_text
     """
-    for attempt in range(30):  # ~90 seconds
+    for attempt in range(30):
         time.sleep(3)
 
         response = get_messages(email)
@@ -108,7 +98,6 @@ def get_otp_from_gmail(email):
             print(f"[{attempt+1}] No emails yet...")
             continue
 
-        # Always use the latest email (API already returns latest first)
         latest_email = emails[0]
 
         body_text = latest_email.get("body_text", "")
@@ -116,12 +105,12 @@ def get_otp_from_gmail(email):
         match = re.search(r"\b\d{6}\b", body_text)
         if match:
             otp = match.group()
-            print("✅ OTP received:", otp)
+            print("OTP received:", otp)
             return otp
 
         print(f"[{attempt+1}] Email received but OTP not found...")
 
-    raise Exception("❌ OTP not received after retries")
+    raise Exception("OTP not received after retries")
 
 
 def save_verified_email(email, file_path="verified_email.py"):
@@ -131,11 +120,10 @@ def save_verified_email(email, file_path="verified_email.py"):
     """
     content = f'VERIFIED_EMAIL = "{email}"\n'
     
-    # If file exists, just overwrite
     with open(file_path, "w") as f:
         f.write(content)
     
-    print(f"✅ Verified email saved/updated in {file_path}")
+    print(f"Verified email saved/updated in {file_path}")
 
 
 def run_signup():
@@ -148,9 +136,7 @@ def run_signup():
         browser = p.chromium.launch(headless=False, slow_mo=300)
         context = browser.new_context()
         page = context.new_page()
-        # -------------------------
-        # STEP 1: OPEN WEBSITE
-        # -------------------------
+
         page.goto("https://authorized-partner.vercel.app/", timeout=60000)
         page.wait_for_load_state("networkidle")
 
@@ -158,9 +144,6 @@ def run_signup():
         page.click("button[type='button']")
         page.click("text=Continue")
 
-        # -------------------------
-        # STEP 2: ACCOUNT DETAILS
-        # -------------------------
         page.fill("input[name='firstName']", USER_DATA["first_name"])
         page.fill("input[name='lastName']", USER_DATA["last_name"])
         page.fill("input[name='email']", USER_DATA["email"])
@@ -170,9 +153,6 @@ def run_signup():
 
         page.click("button:has-text('Next')")
 
-        # -------------------------
-        # STEP 3: OTP VERIFICATION
-        # -------------------------
         page.wait_for_selector("input[data-input-otp='true']", timeout=15000)
         otp = get_otp_from_gmail(gmail_account["email"])
         page.fill("input[data-input-otp='true']", otp)
@@ -180,16 +160,12 @@ def run_signup():
         
         save_verified_email(USER_DATA["email"])
 
-        # -------------------------
-        # STEP 4: AGENCY DETAILS
-        # -------------------------
         page.fill("input[name='agency_name']", USER_DATA["agency_name"])
         page.fill("input[name='role_in_agency']", USER_DATA["role_in_agency"])
         page.fill("input[name='agency_email']", USER_DATA["agency_email"])
         page.fill("input[name='agency_website']", USER_DATA["agency_website"])
         page.fill("input[name='agency_address']", USER_DATA["agency_address"])
 
-        # Multi-select regions
         regions = ["Canada", "United Kingdom"]
         page.locator("button[role='combobox']").first.click()
         for region in regions:
@@ -197,9 +173,6 @@ def run_signup():
 
         page.click("button:has-text('Next')")
 
-        # -------------------------
-        # STEP 5: PROFESSIONAL EXPERIENCE
-        # -------------------------
         page.locator("button[role='combobox']").filter(
             has_text="Experience").click()
         page.locator("div[role='listbox'] >> text=5 years").click()
@@ -212,15 +185,11 @@ def run_signup():
         page.fill("input[name='success_metrics']",
                   USER_DATA["success_metrics"])
 
-        # Select multiple services
         for i in [0, 2, 3]:
             page.locator("button[role='checkbox']").nth(i).click()
 
         page.click("button:has-text('Next')")
 
-        # -------------------------
-        # STEP 6: VERIFICATION & UPLOAD
-        # -------------------------
         page.fill(
             "input[name='business_registration_number']",
             USER_DATA["business_registration_number"]
@@ -251,12 +220,12 @@ def run_signup():
         page.click("button:has-text('Submit')")
 
         page.wait_for_timeout(5000)
-        print("✅ Signup automation completed successfully")
+        print("Signup automation completed successfully")
 
-        print("🚀 Opening login automation...")
-        subprocess.run([sys.executable, "login_test.py"])
+        print("Opening login automation...")
+        subprocess.run([sys.executable, "login_automation_script.py"])
         browser.close()
-        # print("🚀 Opening login automation...")
+        # print("Opening login automation...")
         # subprocess.run([sys.executable, "login_test.py"])
 
 
