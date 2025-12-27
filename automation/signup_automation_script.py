@@ -133,7 +133,8 @@ def run_signup():
         USER_DATA['token'] = gmail_account['token']
         print(f"Using temp Gmail: {USER_DATA['email']}, token:{USER_DATA['token']}")
 
-        browser = p.chromium.launch(headless=False, slow_mo=300)
+        browser = p.chromium.launch(headless=True)
+
         context = browser.new_context()
         page = context.new_page()
 
