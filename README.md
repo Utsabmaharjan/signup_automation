@@ -10,7 +10,7 @@
 ```pip install -r requirement.txt ```
 
 ### step 5: run script 
-to run the signup automation script you can use below command
+to run the signup automation script you can use below command /n
 ```python signup_automation_script.py```
 
 to run the login automation script you can use below command
