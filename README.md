@@ -18,11 +18,14 @@ to run the login automation script you can use this command
 ``` pyhton login_automation_script.py ```
 
 # folder structure
-project repo name 
+### project repo name 
 signup_automation 
-automation folder contains all the automation files 
-utils folder contains test data 
-image folder contain test image files
+### automation folder
+contains all the automation files 
+### utils folder 
+contains test data 
+### image folder
+contains test image files
 
 
 
